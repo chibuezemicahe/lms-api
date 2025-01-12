@@ -1,0 +1,21 @@
+database login details
+
+{
+  "name": "Micah Erumaka",
+  "email": "micah@example.com",
+  "password": "password123",
+  "role_id": 1
+}
+{
+  "name": "John Doe",
+  "email": "John@example.com",
+  "password": "password123",
+  "role_id": 2
+}
+
+{
+  "name": "Jane Smith",
+  "email": "Jane@example.com",
+  "password": "password123",
+  "role_id": 3
+}
