@@ -1,3 +1,4 @@
+const { where } = require('sequelize');
 const {db} = require('../models');
 const {validationResult} = require('express-validator');
 
@@ -43,7 +44,20 @@ exports.getAuthors = async (req,res,next) => {
   const {page=1, limit =10 } = req.query;
 
     try{
+      const {name, birthdate} = req.query;
+
+      const whereClause = {};
+
+      if (name){
+        whereClause.name = { [db.Sequelize.Op.like]: `%${name}%` };; // Here I perform a partial match for name
+      }
+
+      if(birthdate){
+        whereClause.birthdate = birthdate
+      }
+
       const getAllAuthors = await db.Authors.findAll({
+          where:whereClause,
           limit,
           offset: (page - 1) * limit
     });

@@ -1,4 +1,5 @@
 // controllers/booksController.js
+const { where } = require('sequelize');
 const { db } = require('../models');  // Here I Import the db object, which contains the models
 const { validationResult } = require('express-validator');
 
@@ -9,6 +10,11 @@ exports.getBooks = async (req, res, next) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
+    
+    // Here I Pull out the search details from the query parameter
+    const {title, isbn, published_date} = req.query;
+
+    const whereClause = {}
     
     /*
       findAndCountAll() is a Sequelize method used to retrieve records from a database table, and it also provides 
@@ -35,7 +41,23 @@ exports.getBooks = async (req, res, next) => {
       }
 
     */
+
+       // Here I Build the where clause dynamically
+
+      if(title){
+        whereClause.title = { [db.Sequelize.Op.like]: `%${title}%` }
+      }
+
+      if(isbn){
+        whereClause.isbn = { [db.Sequelize.Op.like]: `%${title}%` }
+      }
+
+      if(published_date){
+        whereClause.published_date = published_date;
+      }
+
     const { count, rows } = await db.Books.findAndCountAll({
+      where:whereClause,
       limit,
       offset,
     });
