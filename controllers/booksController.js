@@ -1,7 +1,7 @@
 // controllers/booksController.js
 const { where } = require('sequelize');
 const { db } = require('../models');  // Here I Import the db object, which contains the models
-const { validationResult } = require('express-validator');
+const AppError = require('../utils/appError');
 
 
 // Here i get all the books and apply pagination to fetch 10 books per page
@@ -9,8 +9,12 @@ exports.getBooks = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const offset = (page - 1) * limit;
     
+    if (isNaN(page) || page <= 0 || isNaN(limit) <= 0){
+      throw new AppError('Page and limit must be positive integers.',400)
+    }
+
+    const offset = (page - 1) * limit;
     // Here I Pull out the search details from the query parameter
     const {title, isbn, published_date} = req.query;
 
@@ -62,6 +66,10 @@ exports.getBooks = async (req, res, next) => {
       offset,
     });
 
+    if (count === 0){
+      throw new AppError('No Book Records Was Found', 404);
+    }
+
     return res.status(200).json({
       status: 'success',
       currentPage: page,
@@ -70,10 +78,7 @@ exports.getBooks = async (req, res, next) => {
       data: rows,
     });
   } catch (error) {
-    return res.status(500).json({
-      status: 'error',
-      message: error.message,
-    });
+  next(error);
   }
 };
 
@@ -90,10 +95,7 @@ exports.getOneBook = async (req, res, next) => {
     });
 
     if (!fetchSpecificBook) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Book not found',
-      });
+      throw new AppError('Book was not found', 404)
     }
 
     res.status(200).json({
@@ -104,25 +106,13 @@ exports.getOneBook = async (req, res, next) => {
     console.log('Success fetch Books')
 
   } catch (error) {
-    res.status(500).json({
-      status: 'error',
-      message: error.message,
-    });
+      next(error)
   }
 };
 
 
 // Here i add book to the database
 exports.postAddBook = async (req, res, next) => {
-  const errors = validationResult(req);
-
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      status: 'error',
-      message: errors.array(),
-    });
-  }
-
   const { isbn, title, published_date, author_id, status } = req.body;
 
   try {
@@ -134,15 +124,17 @@ exports.postAddBook = async (req, res, next) => {
       status,
     });
 
+
+    if (!newBook){
+      throw new AppError(' Book Creation Failed ', 500);
+    }
+
     return res.status(201).json({
       status: 'success',
       data: newBook,
     });
   } catch (error) {
-    return res.status(500).json({
-      status: 'error',
-      message: error.message,
-    });
+      next(error)
   }
 };
 
@@ -150,14 +142,6 @@ exports.postAddBook = async (req, res, next) => {
 // Here I edit the book
 exports.editBooks = async (req,res,next) => {
   const {id} = req.params;
-  // Here i do my validation errors
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      status: 'error',
-      message: errors.array(),
-    });
-  }
   try{
     const existingBook = await db.Books.findOne({
     where:{id: Number(id)} 
@@ -166,16 +150,13 @@ exports.editBooks = async (req,res,next) => {
 
    // Here i check if the book exist or not
    if(!existingBook){
-    return res.status(404).json({
-      status: 'error',
-      message: 'Author Does not exist',
-    });
+      throw new AppError('Author Does not exist', 404);
   }
 
   // Here i extract the details from the request body
   const {isbn,title, published_date, author_id, status} = req.body;
 
-  // Here i update the detaails in the database using the details extracted from the req body 
+  // Here i update the details in the database using the details extracted from the req body 
   await existingBook.update({
     isbn: isbn || existingBook.isbn,
     title: title || existingBook.title,
@@ -195,10 +176,7 @@ exports.editBooks = async (req,res,next) => {
 
 
   }catch (error) {
-    return res.status(500).json({
-      status: 'error',
-      message: error.message,
-    });
+    next(error)
   }
   
 }
@@ -217,10 +195,7 @@ exports.deleteBook = async(req, res, next)=>{
       
     // here i check if the book is existing
     if(!existingBook){
-      return res.status(404).json({
-        status: 'error',
-        message: 'Book does not exist',
-      });
+      throw new AppError('Book does not exist', 404)
     }
 
     await existingBook.destroy();
@@ -231,10 +206,7 @@ exports.deleteBook = async(req, res, next)=>{
     });
 
   }catch(error){
-    return res.status(500).json({
-      status: 'error',
-      message: error.message,
-    });
+    next(error);
   }
 }
 
@@ -246,17 +218,14 @@ exports.borrowBook = async (req, res, next) => {
     const existingBook = await db.Books.findOne({where:{id:Number(id)}});
 
     if(!existingBook){
-      return res.status(404).json({
-        status: 'error',
-        message: 'Book does not exist',
-      });
+     throw new AppError('Book does not exist', 404);
     }
 
 
     // Here i check if the book they selected is available or borrowed
 
     if (existingBook.status !== 'Available'){
-      return res.status(400).json({ message: 'Book is not available for borrowing' });
+      throw new AppError('Book is not available for borrowing', 400);
     }
 
     
@@ -275,7 +244,7 @@ exports.borrowBook = async (req, res, next) => {
     return res.status(200).json({  status: 'success', message: 'Book borrowed successfully' });
 
   }catch(error){
-    return res.status(500).json({  status: 'error', message: error.message });
+  next (error)
   }
 }
 
@@ -296,10 +265,7 @@ exports.returnBooks = async (req, res, next ) => {
 
     // Check if the book is already available
     if (book.status === 'Available') {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Book is already returned',
-      });
+      throw new AppError('Book is already returned', 400);
     }
 
      // Find the borrow record
@@ -308,10 +274,7 @@ exports.returnBooks = async (req, res, next ) => {
     });
 
     if (!borrowRecord) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'No borrow record found for this book and user',
-      });
+      throw new AppError('No borrow record found for this book and user',404)
     }
 
     // Update the book status to Available
@@ -328,9 +291,6 @@ exports.returnBooks = async (req, res, next ) => {
   }
   
   catch(error){
-    res.status(500).json({
-      status:'error',
-      message:error.message
-    })
+    next(error);
   }
 }

@@ -1,6 +1,6 @@
 const { where } = require('sequelize');
 const {db} = require('../models');
-const {validationResult} = require('express-validator');
+const AppError = require('../utils/appError');
 
 
 /* This export is for adding an Author and Role based Access Control was implemented meaning only certain
@@ -8,16 +8,6 @@ individuals with certail role (Admin, Librarian) can add an author to the databa
 */
 exports.postAuthor = async (req, res, next ) => {
   
-  const errors = validationResult(req);
-
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        status: 'error',
-        message: errors.array(),
-      });
-    }
-  
-
     const {name, bio, birthdate } = req.body;
 
     try{
@@ -26,16 +16,18 @@ exports.postAuthor = async (req, res, next ) => {
             bio,
             birthdate,
           });
-          res.status(201).json({
+
+          if (!newAuthor){
+            throw new AppError('Author Creation Failed',500)
+          }
+
+          return res.status(201).json({
             status: 'success',
             data: newAuthor,
           });
     }
     catch(error){
-        return error.status(500).json({
-            status:'error',
-            message:error.message
-        })
+      next(error);
     }
 
 }
@@ -61,6 +53,11 @@ exports.getAuthors = async (req,res,next) => {
           limit,
           offset: (page - 1) * limit
     });
+
+    if (!getAllAuthors){
+      throw new AppError('Geting Authors From Database Failed',500 );
+    }
+
     return res.status(200).json({
       status:"Successful",
       data:getAllAuthors
@@ -68,11 +65,8 @@ exports.getAuthors = async (req,res,next) => {
 
   }
   catch(error){
-   return res.status(500).json({
-      status:'error',
-      message:error.message
-    })  
-  } 
+    next(error);
+  }
 }
 
 exports.getSingleAuthor = async (req, res, next )=>{
@@ -88,10 +82,7 @@ exports.getSingleAuthor = async (req, res, next )=>{
 
     // If no author is found, return a 404 response
     if(!findOneAuthor){
-        return res.status(404).json({
-          status: 'error',
-          message: 'Author not found',
-        });
+      throw new AppError('Author not found', 404)
     }
 
     // If the author is found, return the details
@@ -102,11 +93,7 @@ exports.getSingleAuthor = async (req, res, next )=>{
 
   }
   catch(error){
-    return res.status(500).json({
-      status: 'error',
-      message:error.message
-    });
-
+    next(error);
 }
 }
 
@@ -120,14 +107,12 @@ try{
     where: { id: Number(id) },
   });
 
-  // Here i check if the author exist or not
+  // Here i check if the author exist or not and then throw an error based on if it is true or false
   if(!existingAuthor){
-    return res.status(404).json({
-      status: 'error',
-      message: 'Author Does not exist',
-    });
+   
+    throw new AppError('Author Does not exist', 404)
+   
   }
-
 
   // Here i pull out the details from the request body
 
@@ -149,11 +134,7 @@ try{
   });
 }
 catch(error){
-  return res.status(500).json({
-    status: 'error',
-    message:error.message
-  });
-
+  next(error);
 }
 }
 
@@ -171,26 +152,15 @@ exports.deleteAuthor = async (req,res,next ) => {
     });
 
     if(!existingAuthor){
-      return res.status(404).json({
-        status: 'error',
-        message: 'Author Does not exist',
-      });
+      throw new AppError('Author Does not exist',404);
     }
-
     // Delete the author
     await existingAuthor.destroy();
     res.status(200).json({
       status: 'success',
       message: 'Author deleted successfully',
     });
-
-
   } catch (error){
-
-    return res.status(500).json({
-      status:error,
-      message:error.message
-    })
+    next(error);
   }
-
 }

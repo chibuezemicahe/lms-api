@@ -5,6 +5,7 @@ const cors = require('cors');
 const app = express();
 const { initializeSequelize, db} = require('./models/index');
 const PORT = process.env.PORT || 3000;
+const globalErrorHandler = require('./middlewares/globalMiddleWare');
 
 
 // Here I import the routes
@@ -12,6 +13,7 @@ const bookRoutes = require('./routes/books');
 const authorRoutes = require('./routes/author');
 const authRoute = require('./routes/auth')
 const borrowRecordsRoute = require('./routes/borrowRecords');
+const { generalLimiter } = require('./middlewares/rateLimit');
 // Cors MiddleWare setup happens below
 
 // Middleware to parse JSON
@@ -38,13 +40,18 @@ app.use((err,req,res,next)=>{
 })
 
 //Here I implent the routes middleware
-
+app.use(generalLimiter);
 app.use(borrowRecordsRoute);
 app.use(bookRoutes);
 app.use(authorRoutes);
 app.use(authRoute);
+// Here I Catch all the unhandled routes
+app.all('*', (req, res, next) => {
+  next(new AppError(`Cannot find ${req.originalUrl} on this server!`, 404));
+});
 
-
+// Global error handling middleware
+app.use(globalErrorHandler);
 
 // Here I Sync the database and start the server
 
