@@ -4,9 +4,11 @@ const router = express.Router();
 const { check } = require('express-validator');
 const booksController = require('../controllers/booksController');
 const { db } = require('../models'); // Import db instead of Books directly;
-const validationMiddleWare = require('../middlewares/validationMiddleWare')
 const { verifyToken, authorizationRole } = require('../middlewares/authMiddleware'); 
 const AppError = require('../utils/appError');
+const {validationMiddleware} = require('../middlewares/validationMiddleWare')
+
+
 
 // Route to get all books with pagination
 router.get('/books', booksController.getBooks);
@@ -15,7 +17,9 @@ router.get('/books', booksController.getBooks);
 router.get('/books/:id', booksController.getOneBook);
 
 // Route to create book
-router.post('/books',verifyToken, authorizationRole([1,2]), [
+router.post('/books',
+  verifyToken, authorizationRole([1,2]), 
+[
   check('isbn').notEmpty().withMessage('ISBN is required').isLength({ min: 10 })
     .withMessage('ISBN must be at least 10 characters long')
     .custom(async (isbn) => {
@@ -53,8 +57,10 @@ router.post('/books',verifyToken, authorizationRole([1,2]), [
       return true;
     }),
   check('status').notEmpty().withMessage('Status is required')
-    .isIn(['Available', 'Borrowed']).withMessage('Status must be either "Available" or "Borrowed"'),
-],validationMiddleWare, booksController.postAddBook);
+    .isIn(['Available', 'Borrowed']).withMessage('Status must be either "Available" or "Borrowed"')
+],
+validationMiddleware, 
+booksController.postAddBook);
 
 router.put('/books/:id', verifyToken, authorizationRole([1,2]),[
   check('isbn').notEmpty().withMessage('ISBN is required').isLength({ min: 10 })
@@ -95,12 +101,12 @@ router.put('/books/:id', verifyToken, authorizationRole([1,2]),[
       return true;
     }),
   check('status').notEmpty().withMessage('Status is required')
-    .isIn(['Available', 'Borrowed']).withMessage('Status must be either "Available" or "Borrowed"'),
-],validationMiddleWare, booksController.editBooks)
+    .isIn(['Available', 'Borrowed']).withMessage('Status must be either "Available" or "Borrowed"')
+],validationMiddleware, booksController.editBooks)
 
 
 router.post('/books/:id/borrow', verifyToken, authorizationRole([3]), booksController.borrowBook);
-router.post('/books/:id/return', verifyToken, authorizationRole([3]), booksController.returnBook);
+router.post('/books/:id/return', verifyToken, authorizationRole([3]), booksController.returnBooks);
 
 
 router.delete('/books/:id', verifyToken, authorizationRole([1]), booksController.deleteBook);

@@ -2,7 +2,7 @@ const express = require('express');
 const { login, signup } = require('../controllers/authController');
 const { check } = require('express-validator');
 const { signupLimit, loginLimiter } = require('../middlewares/rateLimit');
-const validationMiddleWare = require('../middlewares/validationMiddleWare')
+const {validationMiddleware} = require('../middlewares/validationMiddleWare')
 const router = express.Router();
 
 // Login route (publicly assessible)
@@ -11,7 +11,7 @@ router.post(
   [
     check('email').isEmail().withMessage('Invalid email'),
     check('password').isLength({ min: 5 }).withMessage('Password must be at least 5 characters'),
-  ],validationMiddleWare,loginLimiter,
+  ],validationMiddleware,loginLimiter,
   login
 );
 
@@ -24,7 +24,7 @@ router.post(
     check('email').isEmail().withMessage('Invalid email'),
     check('password').isLength({ min: 5 }).withMessage('Password must be at least 5 characters'),
     check('role_id').isInt().withMessage('Role ID must be an integer'),
-  ],validationMiddleWare,signupLimit,
+  ],validationMiddleware,signupLimit,
   signup
 );
 

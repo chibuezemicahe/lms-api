@@ -6,22 +6,35 @@ const Sequelize = require('sequelize');
 const process = require('process');
 const mysql = require('mysql2/promise'); 
 const basename = path.basename(__filename);
+const dotenv = require('dotenv');
 const env = process.env.NODE_ENV || 'development';
-const config = require(__dirname + '/../config/config.json')[env];
+dotenv.config();
 const db = {};
+
+const poolConfig = process.env.DB_POOL ? JSON.parse(process.env.DB_POOL) : {};
+const envConfig = {
+  host: process.env.DB_HOST,
+  password:process.env.DB_PASSWORD,
+  username:process.env.DB_USERNAME,
+  database:process.env.DB_DATABASE,
+  dialect: process.env.DB_DIALECT || 'mysql',
+  pool: poolConfig,
+}
+
 
 
 async function initializeDatabase() {
+  
   try {
     // Create the MySQL database if it doesn't exist
       const connection = await mysql.createConnection({
-      host: config.host,
-      user: config.username,
-      password: process.env.SQLPASS || config.password,
+      host: envConfig.host,
+      user: envConfig.username,
+      password: envConfig.password,
     });
 
-    await connection.query(`CREATE DATABASE IF NOT EXISTS \`${config.database}\`;`);
-    console.log(`Database ${config.database} created or already exists.`);
+    await connection.query(`CREATE DATABASE IF NOT EXISTS \`${envConfig.database}\`;`);
+    console.log(`Database ${envConfig.database} created or already exists.`);
     await connection.end();
   } catch (error) {
     console.error('Database creation error:', error);
@@ -32,17 +45,13 @@ async function initializeDatabase() {
 
 async function initializeSequelize() {
   await initializeDatabase();
-  let sequelize;
-  if (config.use_env_DB_URL) {
-    sequelize = new Sequelize(process.env.DB_URL, config);
-  } else {
-    sequelize = new Sequelize(config.database, config.username, process.env.SQLPASS || config.password,
+  const  sequelize = new Sequelize(envConfig.database, envConfig.username, envConfig.password,
       {
-        host: config.host,
-        dialect: config.dialect,
-        pool:config.pool
+        host: envConfig.host,
+        dialect: envConfig.dialect,
+        pool:envConfig.pool
       });
-  }
+    
 
   fs
     .readdirSync(__dirname)

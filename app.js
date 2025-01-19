@@ -1,11 +1,14 @@
 const express = require ('express');
 const mysql = require ('mysql2');
-const env = require('dotenv').config();
+const dotenv = require('dotenv');
 const cors = require('cors');
 const app = express();
 const { initializeSequelize, db} = require('./models/index');
+const {globalErrorHandler} = require('./middlewares/globalMiddleWare');
+
+
+dotenv.config();
 const PORT = process.env.PORT || 3000;
-const globalErrorHandler = require('./middlewares/globalMiddleWare');
 
 
 // Here I import the routes
@@ -29,15 +32,15 @@ app.use(cors({
 
 
 
-// Global Error Handler Middleware
-app.use((err,req,res,next)=>{
-    console.log(  err.stack  );
+// // Global Error Handler Middleware
+// app.use((err,req,res,next)=>{
+//     console.log(  err.stack  );
 
-    res.staus(err.status || 500 ).json({
-        success: false,
-        message: err.message
-    })
-})
+//     res.staus(err.status || 500 ).json({
+//         success: false,
+//         message: err.message
+//     })
+// })
 
 //Here I implent the routes middleware
 app.use(generalLimiter);

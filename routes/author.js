@@ -3,7 +3,7 @@ const router = express.Router();
 const {check} = require('express-validator');
 const authorsController = require('../controllers/authorsController');
 const { verifyToken, authorizationRole } = require('../middlewares/authMiddleware');
-const validationMiddleware = require('../middlewares/validationMiddleWare')
+const {validationMiddleware} = require('../middlewares/validationMiddleWare')
 
 router.get('/authors/:id', authorsController.getSingleAuthor);
 router.get('/authors', authorsController.getAuthors);
